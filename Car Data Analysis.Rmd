@@ -1,0 +1,105 @@
+---
+title: "Car Data Analysis"
+author: "Jacob Townson"
+date: "July 21, 2015"
+output: pdf_document
+---
+
+```{r include = FALSE}
+library(knitr)
+library(datasets)
+library(ggplot2)
+library(MASS)
+library(xtable)
+options(xtable.comment = FALSE)
+```
+
+# Overview
+
+In this report, I will analyze the data of the mtcars data set. The goal of this analysis is to use linear modeling with R to answer whether manual transmission is better for gas mileage or if automatic is, and also to try to quantify the difference between the two types of transmission. Before I begin, I must load in the mtcars data.
+
+```{r}
+data("mtcars")
+```
+
+# Making the Model
+
+In order to answer the questions given, we must find the best model. To start with the modeling process, let's look at the model with all of the given variables in the mtcars data set. As seen in the summary given in **Figure 1**, the model with all the variables is not very precise when it comes to P values. In **Figure 1** you can also see the residuals for the model. In the residuals, the Q-Q plot looks to be close to the line, however the line of the residuals vs fitted does not seem to be very good. The line in this graph should be horizontal. So there need to be some changes made to this current model. To find out what, we should see if there are any correlations between the variables.
+
+In **Figure 2** I present the code to find if there are any correlations in the data. If this code is run in R (and drastically zoomed in), one can see that the need for some quadratic variables my be required in order to make the model work the way we want it to. For example, if one were to look at the comparison between gear and mpg, one might notice that the correlation almost looks quadratic. This happens to a few of our variables in the model, so we will add their square terms into the mix.
+
+```{r}
+dispsq <- (mtcars$disp)^2
+hpsq <- (mtcars$hp)^2
+wtsq <- (mtcars$wt)^2
+gearsq <- (mtcars$gear)^2
+carsDat <- cbind(mtcars, dispsq, hpsq, wtsq, gearsq)
+```
+
+And now with this new data that includes the squares of variables that appear to have a quadratic relationship, we should be able to find an accurate model.
+
+To help narrow down our options in variables, I will use the stepAIC function in the MASS package of R. This function attempts to remove unnecessary variables from the model. 
+
+```{r eval = FALSE}
+cars.mod <- lm(mpg~am+., data = carsDat)
+stepAIC(cars.mod, scope = list(lower = ~am))
+```
+
+This code presents us with these values as the coefficients with the following P values:
+
+```{r include = FALSE}
+cars.mod <- lm(mpg~am+., data = carsDat)
+cars.mod <- (stepAIC(cars.mod, scope = list(lower = ~am)))
+```
+
+```{r echo=FALSE, results='asis'}
+xtable(summary(cars.mod))
+```
+
+This table presents us with the best model for dealing with correlations with other variables. To test this we will run residual tests on the model. These are presented in **Figure 3**. 
+
+As one can see in these residuals, the model looks much better than the original with all of the variables and no quadratics added in. Thus we can conclude that this model works well for the given situation
+
+# Conclusion
+
+Recall our reason for doing all of these tests, our goal was to find out if automatic or manual transmission is better for gas mileage, and by how much. Well, if one refers to the help file, the am value in the model equals 0 if it is automatic and 1 if it is manual. So we can see that if $am = 1$ (if the car is manual) the value of the miles per gallon goes down approximately $1.55$ in our model. This would lead us to believe that automatic cars get better gas mileage than manual cars. This is extremely interesting because in our original model (refer to **Figure 1**) the am coefficient in the model was positive which would have lead us to believe otherwise. So alternating the model as we needed actually helped to completely correct our answer. So our answer becomes that automatic transmission is better, and it gets about $1.55$ miles per gallon better.
+
+There is just one problem with this conclusion. If one were to look at the P value given in the table presented with our coefficients, one could see that the P value for the variable am isn't very low. This leads us to believe that in actuality, transmission doesn't seem to be an applicable factor in the model for miles per gallon. 
+
+Thus our final conclusion must be that transmission doesn't actually seem to make a difference because of the high P value. This gives us evidence that the model doesn't need transmission in order to be accurate. However, if transmission was needed, an automatic transmission would be better by approximately $1.55$ miles per gallon.
+
+******
+
+# Appendix
+
+## Figure 1
+
+```{r results = 'asis'}
+all.cars <- lm(mpg~am+., data = mtcars)
+xtable(summary(all.cars)$coef)
+```
+
+```{r fig.height=3}
+plot(all.cars, which=1:2, labels.id = '')
+```
+
+## Figure 2
+
+```{r eval = FALSE}
+pairs(mtcars)
+```
+
+## Figure 3
+
+```{r fig.height=3}
+plot(cars.mod, which=1:2, labels.id = '')
+```
+
+
+
+
+
+
+
+
+
